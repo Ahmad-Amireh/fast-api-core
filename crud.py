@@ -2,10 +2,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from models import User, Post
 from schemas import UserCreate, UserUpdate, PostCreate
+from security import hash_password
+
 
 def create_user(session: Session, user_data: UserCreate):
     user = User(name=user_data.name,
-                email=user_data.email)
+                email=user_data.email,
+                password = hash_password(user_data.password))
+                
     
     session.add(user)
     session.commit()

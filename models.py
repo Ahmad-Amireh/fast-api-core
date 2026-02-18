@@ -21,6 +21,7 @@ class User (Base):
         nullable=False,
         unique=True
     )
+    password: Mapped[str] = mapped_column(String(255), nullable=False)  # ✅ Add this
     
 
     posts: Mapped[List["Post"]] = relationship("Post", back_populates="author", cascade="all, delete-orphan")
