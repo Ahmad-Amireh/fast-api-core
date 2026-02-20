@@ -4,7 +4,7 @@ import crud, models, schemas
 from database import Base, engine, get_session
 from typing import List
 import security
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title= "User-Post API")
@@ -47,13 +47,13 @@ def delete_user(user_id: int, db: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User deleted successfully"}
 
-@app.post("/users/{user_id}/posts", response_model=schemas.PostResponse, status_code=201)
-def create_post(user_id: int, post: schemas.PostCreate, db: Session = Depends(get_session)):
-    user = crud.get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(404, "User not found")
-
-    return crud.create_post(db, post, user_id)
+@app.post("/posts/", response_model=schemas.PostResponse, status_code=201)
+def create_post(post: schemas.PostCreate, db: Session = Depends(get_session), current_user: models.User = Depends(security.get_current_user)):
+    return crud.create_post_in_db(
+            db,
+            post,
+            current_user.id
+        )
 
 @app.get("/posts/", response_model=List[schemas.PostResponse])
 def read_posts(db: Session = Depends(get_session)):
@@ -69,18 +69,25 @@ def read_posts_by_user(user_id: int, db: Session = Depends(get_session)):
 
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @app.post("/login", response_model=schemas.Token)
-def login(user: schemas.UserLogin, db: Session = Depends(get_session)):
-    db_user = crud.get_user_by_email(db, user.email)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_session)
+):
+    db_user = crud.get_user_by_email(db, form_data.username)
+
     if not db_user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
-    db_user = db_user[0]  # because get_user_by_email returns a list
-    
-    if not security.verify_password(user.password, db_user.password):
+
+    if not security.verify_password(form_data.password, db_user.password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
-    access_token = security.create_access_token(data={"sub": db_user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+
+    access_token = security.create_access_token(
+        data={"sub": db_user.email}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }

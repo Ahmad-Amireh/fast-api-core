@@ -31,7 +31,6 @@ class UserResponse(BaseModel):
 class PostCreate(BaseModel):
     title: str
     content: Optional[str] = None
-    user_id: int
 
 class PostResponse(BaseModel):
     id: int
