@@ -10,5 +10,6 @@ dependencies = [
     "jose>=1.0.0",
     "jwt>=1.4.0",
     "pydantic>=2.12.5",
+    "pyjwt>=2.11.0",
     "sqlalchemy>=2.0.46",
 ]

@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 import crud, models, schemas
 from database import Base, engine, get_session
 from typing import List
-
+import security
+from fastapi.security import OAuth2PasswordBearer
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title= "User-Post API")
@@ -11,7 +12,9 @@ app = FastAPI(title= "User-Post API")
 
 @app.post("/users/", response_model=schemas.UserResponse, status_code=201)
 def create_user (user: schemas.UserCreate, db: Session= Depends(get_session)):
-    return crud.create_user(session=db, user_data= user)
+    if crud.get_user_by_email(db, user.email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    return crud.create_user(db, user)
 
 @app.get("/users/", response_model=List[schemas.UserResponse])
 def get_users(
@@ -63,3 +66,21 @@ def read_posts_by_user(user_id: int, db: Session = Depends(get_session)):
     if not user:
         raise HTTPException(404, "User not found")
     return crud.get_posts_by_user(db, user_id)
+
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+@app.post("/login", response_model=schemas.Token)
+def login(user: schemas.UserLogin, db: Session = Depends(get_session)):
+    db_user = crud.get_user_by_email(db, user.email)
+    if not db_user:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+    
+    db_user = db_user[0]  # because get_user_by_email returns a list
+    
+    if not security.verify_password(user.password, db_user.password):
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+    
+    access_token = security.create_access_token(data={"sub": db_user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
