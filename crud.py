@@ -34,9 +34,8 @@ def get_user_by_id(
     return session.get(User, user_id)
 
 def get_user_by_email(session: Session, email: str):
-    
     stmt = select(User).where(User.email == email)
-    return session.scalars(stmt).all()
+    return session.scalars(stmt).first()
 
 def update_user(session: Session, user_id: int, user_data: UserUpdate):
 
@@ -71,8 +70,8 @@ def delete_user (session: Session, user_id: int):
 
     return True
 
-def create_post (session: Session, post_data: PostCreate):
-    post = Post(title=post_data.title, content=post_data.content, user_id=post_data.user_id)
+def create_post_in_db (session: Session, post_data: PostCreate, user_id: int):
+    post = Post(title=post_data.title, content=post_data.content, user_id=user_id)
     session.add(post)
     session.commit()
     session.refresh(post)
