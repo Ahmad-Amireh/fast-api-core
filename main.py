@@ -5,7 +5,7 @@ from database import Base, engine, get_session
 from typing import List
 import security
 from fastapi.security import OAuth2PasswordRequestForm
-
+from datetime import datetime, timezone
 #Base.metadata.create_all(bind=engine) # Remove when using alembic
 
 app = FastAPI(title= "User-Post API")
@@ -71,7 +71,7 @@ def read_posts_by_user(user_id: int, db: Session = Depends(get_session)):
 
 
 
-@app.post("/login", response_model=schemas.Token)
+@app.post("/login", response_model=schemas.TokenPair)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_session)
@@ -88,8 +88,14 @@ def login(
         data={"sub": db_user.email}
     )
 
+    refresh_token = crud.create_refresh_token(
+        db,
+        db_user.id
+    )
+
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token.token,
         "token_type": "bearer"
     }
 
@@ -102,3 +108,47 @@ def read_my_posts(
 ):
     skip = (page - 1) * page_size
     return crud.get_posts_by_user(db, current_user.id, skip=skip, limit=page_size)
+
+@app.post("/refresh", response_model=schemas.Token)
+def refresh_token(refresh_token: str, db = Depends(get_session)):
+
+    db_token = crud.get_refresh_token(db, refresh_token)
+    
+    if not db_token:
+
+        raise HTTPException(
+            401,
+            "Invalid refresh token"
+        )
+
+    if db_token.expire_at < datetime.now(timezone.utc):
+
+        raise HTTPException(
+            401,
+            "Refresh token expired"
+        )
+    
+    user = db_token.user
+
+    access_token = security.create_access_token(
+        {"sub": user.email}
+    )
+
+    return {
+
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+@app.post("/logout")
+def logout(
+    refresh_token: str,
+    db: Session = Depends(get_session)
+):
+
+    crud.delete_refresh_token(
+        db,
+        refresh_token
+    )
+
+    return {"message": "Logged out"}

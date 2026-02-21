@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from models import User, Post
+from models import User, Post, RefreshToken
 from schemas import UserCreate, UserUpdate, PostCreate
 from security import hash_password
+from datetime import datetime, timedelta, timezone
+import security
 
 
 def create_user(session: Session, user_data: UserCreate):
@@ -100,3 +102,39 @@ def get_posts_by_user(
 
     return session.scalars(stmt).all()
 
+
+
+
+def create_refresh_token(session, user_id):
+
+    token = security.create_refresh_token()
+
+    expire = datetime.now(timezone.utc) + timedelta(
+        days=security.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+
+    db_token = RefreshToken(
+        token=token,
+        user_id=user_id,
+        expire_at=expire
+    )
+
+    session.add(db_token)
+    session.commit()
+    session.refresh(db_token)
+
+    return db_token
+
+def get_refresh_token(session, token):
+
+    stmt = select(RefreshToken).where(RefreshToken.token == token)
+    return session.scalars(stmt).first()
+
+def delete_refresh_token(session, token):
+
+    db_token = get_refresh_token(session, token)
+
+    if db_token:
+
+        session.delete(db_token)
+        session.commit()
