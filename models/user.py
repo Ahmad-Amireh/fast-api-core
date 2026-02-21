@@ -25,6 +25,7 @@ class User (Base):
     
 
     posts: Mapped[List["Post"]] = relationship("Post", back_populates="author", cascade="all, delete-orphan")
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
 

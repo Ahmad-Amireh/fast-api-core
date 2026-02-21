@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from database import get_session
+import secrets
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -35,9 +36,9 @@ def verify_password(plain_password: str, hashed: str) -> bool:
 # ------------------------------
 # JWT token functions
 # ------------------------------
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict, expire_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + (expire_delta if expire_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -84,3 +85,8 @@ def get_current_user(token: str = Depends(oauth2_schema),
         )
 
     return user
+
+
+def create_refresh_token():
+
+    return secrets.token_urlsafe(64)
