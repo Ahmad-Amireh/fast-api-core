@@ -1,0 +1,160 @@
+# 📦 Database Migrations with Alembic
+
+We use **Alembic** for database migrations in this project. Alembic provides **version control for your database schema**, similar to Git for code.  
+
+**Never modify the database directly in production** — always use Alembic migrations.
+
+---
+
+## 1. Install Alembic
+
+```bash
+
+2. Initialize Alembic (once per project)
+alembic init alembic
+
+Creates the alembic/ folder with:
+
+versions/ (migration files)
+
+env.py (migration environment)
+
+script.py.mako (template)
+
+Also creates alembic.ini config file.
+
+3. Configure Alembic to use your models
+
+Edit alembic/env.py:
+
+from models import User, Post, RefreshToken
+from database import Base
+
+target_metadata = Base.metadata
+
+This ensures Alembic reads your SQLAlchemy models and can autogenerate migrations.
+
+4. Create a new migration
+4a. Autogenerate migration
+alembic revision --autogenerate -m "add refresh token table"
+
+Alembic compares models metadata with the database.
+
+Generates a migration file in alembic/versions/.
+
+Important: always review the generated file — Alembic can miss renames or complex constraints.
+
+4b. Manual migration
+
+You can also create an empty migration:
+
+alembic revision -m "manual migration"
+
+Then manually edit upgrade() and downgrade() functions.
+
+5. Apply migrations
+
+Apply all migrations to the database:
+
+alembic upgrade head
+
+head = latest revision.
+
+Alembic updates the alembic_version table automatically.
+
+6. Downgrade / Rollback migrations
+
+Undo the last migration:
+
+alembic downgrade -1
+
+Undo to a specific revision:
+
+alembic downgrade <revision_id>
+
+Example:
+
+alembic downgrade e1643f1668dd
+7. View migration history
+alembic history
+
+Shows all revisions in chronological order.
+
+Useful to track database evolution.
+
+8. Check current database version
+alembic current
+
+Shows the revision currently applied to the database.
+
+9. Merge branches (advanced, multi-developer workflow)
+alembic merge <rev1> <rev2> -m "merge branches"
+
+Needed when two developers create migrations from the same base.
+
+Produces a merge revision.
+
+10. Best Practices
+
+Never use Base.metadata.create_all() in production.
+Alembic handles all table creation and updates.
+
+Always review autogenerate migrations.
+
+Renamed columns may be interpreted as drop + create → data loss.
+
+Use separate migration for each feature.
+
+Example: add refresh token → new revision
+
+Add column → new revision
+
+Backup database before applying migrations in production.
+
+Commit migration files to Git.
+
+Migration files are part of your codebase.
+
+Follow project naming conventions:
+
+Tables: plural (users, posts)
+
+Models: singular (User, Post)
+
+Columns: snake_case, singular (email, user_id)
+
+11. Professional Workflow Example
+
+Adding a new feature (e.g., refresh token):
+
+Add the model in models/refresh_token.py
+
+Generate migration:
+
+alembic revision --autogenerate -m "add refresh token table"
+
+Review migration file and confirm upgrade() and downgrade() are correct
+
+Apply migration locally:
+
+alembic upgrade head
+
+Commit migration file to Git
+
+Deploy to production and run:
+
+alembic upgrade head
+
+
+
+12. Quick Command Reference
+Command	Description
+alembic init alembic	Initialize Alembic in the project
+alembic revision -m "msg"	Create empty migration file
+alembic revision --autogenerate -m "msg"	Create migration from model changes
+alembic upgrade head	Apply latest migrations
+alembic downgrade -1	Undo last migration
+alembic downgrade <rev>	Undo to specific revision
+alembic history	Show migration history
+alembic current	Show current database version
+alembic merge <rev1> <rev2>	Merge migrations (multi-developer)

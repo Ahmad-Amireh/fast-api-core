@@ -5,7 +5,8 @@ from database import Base, engine, get_session
 from typing import List
 import security
 from fastapi.security import OAuth2PasswordRequestForm
-Base.metadata.create_all(bind=engine)
+
+#Base.metadata.create_all(bind=engine) # Remove when using alembic
 
 app = FastAPI(title= "User-Post API")
 
