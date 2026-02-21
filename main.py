@@ -91,3 +91,13 @@ def login(
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+@app.get("/posts/me", response_model=List[schemas.PostResponse])
+def read_my_posts(
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_session),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    skip = (page - 1) * page_size
+    return crud.get_posts_by_user(db, current_user.id, skip=skip, limit=page_size)

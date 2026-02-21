@@ -52,6 +52,9 @@ def update_user(session: Session, user_id: int, user_data: UserUpdate):
 
         user.email = user_data.email
 
+    if user_data.password:
+        user.password = hash_password(user_data.password)
+
     session.commit()
     session.refresh(user)
     
@@ -81,7 +84,19 @@ def get_posts(session:Session) -> list[Post]:
     stmt = select(Post)
     return session.scalars(stmt).all()
 
-def get_posts_by_user(session:Session, user_id: int) -> list[Post]:
-    stmt = select(Post).where(Post.user_id == user_id)
+def get_posts_by_user(
+    session: Session,
+    user_id: int,
+    skip: int = 0,
+    limit: int = 10
+) -> list[Post]:
+
+    stmt = (
+        select(Post)
+        .where(Post.user_id == user_id)
+        .offset(skip)
+        .limit(limit)
+    )
+
     return session.scalars(stmt).all()
 
